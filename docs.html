@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Docs - Formula Python Lab</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="docs-page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">F1</div>
+        <div>
+          <h1>Documentacion</h1>
+          <p>API, estrategia y pistas para resolver el reto sin copiar una solucion cerrada.</p>
+        </div>
+      </div>
+      <div class="toolbar"><a class="doc-link" href="index.html">Volver</a></div>
+    </header>
+
+    <main class="docs-layout">
+      <section class="doc-section">
+        <h2>Objetivo</h2>
+        <p>Escribe un programa Python que controle el coche durante una vuelta completa. El coche tiene tres sensores frontales que detectan la linea negra. Si se sale demasiados frames, la simulacion termina.</p>
+      </section>
+
+      <section class="doc-section">
+        <h2>API Disponible</h2>
+        <div class="api-grid">
+          <code>izq, centro, der = leer_linea()</code><p>Devuelve 1 si cada sensor ve la linea negra y 0 si ve asfalto.</p>
+          <code>error = leer_error()</code><p>Devuelve un error aproximado: negativo hacia izquierda, positivo hacia derecha.</p>
+          <code>motor(izquierda, derecha)</code><p>Potencia de cada lado entre -100 y 100. Diferencia de motores = giro.</p>
+          <code>esperar()</code><p>Avanza un frame de simulacion. Si no llamas a esta funcion, el coche no se mueve.</p>
+          <code>leer_velocidad()</code><p>Velocidad actual. Util para limitar rectas y curvas.</p>
+          <code>leer_progreso()</code><p>Porcentaje de vuelta completada entre 0 y 1.</p>
+          <code>tiempo()</code><p>Numero de frames simulados.</p>
+          <code>imprimir(...)</code><p>Escribe en consola sin saturar el navegador.</p>
+        </div>
+      </section>
+
+      <section class="doc-section">
+        <h2>Plan de Trabajo</h2>
+        <ol>
+          <li>Haz que <code>calcular_error()</code> convierta sensores en un numero.</li>
+          <li>Guarda memoria del ultimo lado donde viste la linea para recuperarte si los tres sensores leen 0.</li>
+          <li>Implementa un controlador P: <code>correccion = error * KP</code>.</li>
+          <li>Anade derivada: usa <code>error - ultimo_error</code> para suavizar cambios bruscos.</li>
+          <li>Baja velocidad en curva: si <code>abs(error)</code> sube, usa <code>VEL_CURVA</code>.</li>
+          <li>Depura con <code>imprimir()</code> cada 50 pasos, no en cada frame.</li>
+        </ol>
+      </section>
+
+      <section class="doc-section">
+        <h2>Esqueleto Recomendado</h2>
+        <pre><code>ultimo_error = 0
+ultimo_lado = 0
+
+def calcular_error():
+    global ultimo_lado
+    izq, centro, der = leer_linea()
+    # convierte sensores a error y actualiza ultimo_lado
+    return 0
+
+def elegir_velocidad(error):
+    # baja velocidad si abs(error) es grande
+    return 30
+
+def controlar(error):
+    global ultimo_error
+    derivada = error - ultimo_error
+    ultimo_error = error
+    return 0
+
+for paso in range(MAX_PASOS):
+    error = calcular_error()
+    velocidad = elegir_velocidad(error)
+    correccion = controlar(error)
+    motor(velocidad - correccion, velocidad + correccion)
+    esperar()</code></pre>
+      </section>
+
+      <section class="doc-section">
+        <h2>Consejos</h2>
+        <ul>
+          <li>Si vibra en recta, baja <code>KP</code> o anade <code>KD</code>.</li>
+          <li>Si se abre en curvas, baja velocidad antes de subir mucho <code>KP</code>.</li>
+          <li>Si pierde la linea en una horquilla, usa memoria: gira hacia el ultimo lado visto.</li>
+          <li>Empieza en Academy GP y no pases a Grand Prix Pro hasta completar dos vueltas limpias.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

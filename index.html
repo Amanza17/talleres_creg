@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Formula Python Lab</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">F1</div>
+        <div>
+          <h1>Formula Python Lab</h1>
+          <p>Python real: sensores, memoria y control de velocidad.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <a class="doc-link" href="docs.html" target="_blank" rel="noreferrer">Docs</a>
+        <button id="resetBtn" class="icon-btn" type="button" title="Reiniciar simulacion">↻</button>
+        <button id="stepBtn" type="button" title="Avanzar un frame">Frame</button>
+        <button id="runBtn" type="button" title="Ejecutar Python">▶ Ejecutar</button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <aside class="leftbar">
+        <section class="block">
+          <div class="block-title">Circuitos</div>
+          <div id="trackList" class="track-list"></div>
+        </section>
+        <section class="block">
+          <div class="block-title">API Python</div>
+          <div class="docs">
+            <code>leer_linea()</code>
+            <code>leer_error()</code>
+            <code>motor(izq, der)</code>
+            <code>esperar()</code>
+            <code>leer_velocidad()</code>
+            <code>leer_progreso()</code>
+            <code>tiempo()</code>
+            <code>imprimir(valor)</code>
+            <code>def controlar(e):</code>
+            <code>for paso in range(N):</code>
+            <code>if error &gt; 0:</code>
+          </div>
+        </section>
+        <section class="block metrics-block">
+          <div class="block-title">Pista actual</div>
+          <div class="meta-grid">
+            <span>Circuito</span><strong id="trackName">...</strong>
+            <span>Dificultad</span><strong id="trackDifficulty">...</strong>
+            <span>Objetivo</span><strong>100% · casi sin salidas</strong>
+          </div>
+        </section>
+      </aside>
+
+      <section class="editor-panel">
+        <div class="panel-head">
+          <div>
+            <span class="label">Editor</span>
+            <strong>piloto.py</strong>
+          </div>
+          <select id="snippetSelect" title="Cargar plantilla">
+            <option value="">Plantillas</option>
+            <option value="pid">Reto con funciones</option>
+            <option value="ifelse">Reto con estados</option>
+            <option value="debug">Explorar sensores</option>
+            <option value="solution">Solucion</option>
+          </select>
+        </div>
+        <div class="editor-wrap">
+          <pre id="lineNumbers">1</pre>
+          <textarea id="codeEditor" spellcheck="false"></textarea>
+        </div>
+        <div class="console">
+          <div class="console-title">Consola Python</div>
+          <pre id="consoleOutput"></pre>
+        </div>
+      </section>
+
+      <section class="sim-panel">
+        <div class="panel-head sim-head">
+          <div>
+            <span class="label">Simulador</span>
+            <strong id="simTitle">Circuito</strong>
+          </div>
+          <div class="stats">
+            <span id="lapText">0%</span>
+            <span id="speedText">0 km/h</span>
+            <span id="offText">0 salidas</span>
+          </div>
+        </div>
+        <canvas id="gameCanvas" width="1000" height="680" aria-label="Simulador de Formula 1"></canvas>
+        <div class="telemetry">
+          <div>
+            <span class="label">Sensores</span>
+            <div id="sensorBars" class="sensor-bars"><i></i><i></i><i></i></div>
+          </div>
+          <div>
+            <span class="label">Error</span>
+            <strong id="errorText">0.00</strong>
+          </div>
+          <div id="message" class="message">Arranca el servidor y ejecuta el controlador.</div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
