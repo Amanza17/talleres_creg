@@ -3,7 +3,8 @@ import json
 import math
 import mimetypes
 import os
-import signal
+import sys
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -245,11 +246,20 @@ def simulate(code, track_index):
         "imprimir": imprimir, "math": math,
     }
 
-    def timeout_handler(_signum, _frame):
-        raise TimeoutError("Tiempo maximo de Python agotado. Revisa bucles infinitos.")
+    deadline = time.monotonic() + 6.0
+    trace_steps = {"count": 0}
 
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(6)
+    def timeout_trace(frame, event, _arg):
+        if frame.f_code.co_filename != "piloto.py":
+            return None
+        if event == "line":
+            trace_steps["count"] += 1
+            if trace_steps["count"] > 200000 or time.monotonic() > deadline:
+                raise TimeoutError("Tiempo maximo de Python agotado. Revisa bucles infinitos.")
+        return timeout_trace
+
+    old_trace = sys.gettrace()
+    sys.settrace(timeout_trace)
     try:
         run_globals = {"__builtins__": safe_builtins, **env}
         exec(compile(code, "piloto.py", "exec"), run_globals, run_globals)
@@ -265,8 +275,7 @@ def simulate(code, track_index):
         if not frames:
             record_frame()
     finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_handler)
+        sys.settrace(old_trace)
 
     return {"frames": frames, "console": console, "summary": frames[-1] if frames else {}, "track": track["id"]}
 
