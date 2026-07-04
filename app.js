@@ -6,9 +6,11 @@ const output = document.querySelector("#consoleOutput");
 const message = document.querySelector("#message");
 const lapText = document.querySelector("#lapText");
 const speedText = document.querySelector("#speedText");
+const timeText = document.querySelector("#timeText");
 const offText = document.querySelector("#offText");
 const errorText = document.querySelector("#errorText");
-const sensorBars = [...document.querySelectorAll("#sensorBars i")];
+const cameraStrip = document.querySelector("#cameraStrip");
+const cameraText = document.querySelector("#cameraText");
 const trackList = document.querySelector("#trackList");
 const trackName = document.querySelector("#trackName");
 const trackDifficulty = document.querySelector("#trackDifficulty");
@@ -16,10 +18,16 @@ const simTitle = document.querySelector("#simTitle");
 const runBtn = document.querySelector("#runBtn");
 const stepBtn = document.querySelector("#stepBtn");
 const resetBtn = document.querySelector("#resetBtn");
+const zoomInBtn = document.querySelector("#zoomInBtn");
+const zoomOutBtn = document.querySelector("#zoomOutBtn");
 const snippetSelect = document.querySelector("#snippetSelect");
 
 const TAU = Math.PI * 2;
-const sensorOffsets = [-9, 0, 9];
+const SIM_DT = 0.02;
+const MAX_GAUGE_SPEED = 90;
+const sensorOffsets = [-6, 0, 6];
+const cameraPixels = 11;
+const cameraSpan = 28;
 let world = { width: 1000, height: 680 };
 let tracks = [];
 let currentTrackIndex = 0;
@@ -27,139 +35,158 @@ let frames = [];
 let frameIndex = 0;
 let player = null;
 let car = null;
+let zoom = 1;
+let playbackStep = 1;
 
 function starterFor(track) {
   return `# Python real: este codigo se ejecuta en server.py
 # Circuito: ${track.name} (${track.difficulty})
 # Reto: completa las funciones. No basta con ir recto.
 
-MAX_PASOS = ${track.laps}
+MAX_PASOS = ${Math.ceil(track.laps / 6)}
 
 # Ajusta estos valores despues de mirar la telemetria.
-VEL_RECTA = ${Math.max(30, track.speed - 6)}
-VEL_CURVA = ${Math.max(24, track.speed - 18)}
+STRAIGHT_SPEED = ${Math.max(30, track.speed - 6)}
+CORNER_SPEED = ${Math.max(24, track.speed - 18)}
 KP = 0
 KD = 0
 
-ultimo_error = 0
-ultimo_lado = 0
+last_error = 0
+last_side = 0
 
 
-def calcular_error():
+def calculate_error():
     # TODO 1:
-    # Usa leer_linea() y devuelve un error numerico.
-    # Recomendacion:
-    #   izquierda -> negativo
-    #   derecha   -> positivo
-    #   centro    -> 0
-    # Si los 3 sensores pierden la linea, usa ultimo_lado.
-    izq, centro, der = leer_linea()
+    # read_camera() devuelve 11 valores: 1=linea, 0=asfalto.
+    # Calcula el centroide de los pixeles activos.
+    # Error negativo = linea a la izquierda; positivo = derecha.
+    camera = read_camera()
     return 0
 
 
-def elegir_velocidad(error):
+def choose_speed(error):
     # TODO 2:
-    # Baja velocidad cuando el error sea grande.
-    # Puedes usar abs(error), leer_velocidad() o leer_progreso().
-    return VEL_RECTA
+    # Baja la velocidad cuando el error sea grande.
+    # Puedes usar abs(error), get_speed() o get_progress().
+    return STRAIGHT_SPEED
 
 
-def controlar(error):
+def control(error):
     # TODO 3:
     # Implementa un controlador P o PD.
-    # correccion = error * KP + derivada * KD
+    # correction = error * KP + derivative * KD
     return 0
 
 
 for paso in range(MAX_PASOS):
-    error = calcular_error()
-    velocidad = elegir_velocidad(error)
-    correccion = controlar(error)
+    error = calculate_error()
+    speed = choose_speed(error)
+    correction = control(error)
 
-    motor(velocidad - correccion, velocidad + correccion)
-    esperar()
+    set_motor(speed - correction, speed + correction)
+    sleep()
 
-    # Puedes imprimir cada 50 pasos para depurar sin saturar consola.
-    if paso % 50 == 0:
-        imprimir(paso, leer_linea(), round(error, 2), round(leer_velocidad(), 1))`;
+    # Puedes imprimir cada 25 decisiones para depurar sin saturar consola.
+    if paso % 25 == 0:
+        print(paso, read_line(), round(error, 2), round(get_speed(), 1))`;
 }
 
 function ifSnippet(track) {
   return `# Plantilla alternativa: maquina de estados.
 # Completa las ramas y usa memoria para recuperar la linea.
 
-MAX_PASOS = ${track.laps}
-velocidad = ${Math.max(24, track.speed - 14)}
-ultimo_lado = 0
+MAX_PASOS = ${Math.ceil(track.laps / 6)}
+speed = ${Math.max(24, track.speed - 14)}
+last_side = 0
 
 for paso in range(MAX_PASOS):
-    izq, centro, der = leer_linea()
+    left, center, right = read_line()
 
-    if centro == 1:
+    if center == 1:
         # TODO: recta o curva suave
-        motor(0, 0)
-    elif izq == 1:
-        # TODO: gira hacia la izquierda y guarda ultimo_lado
-        motor(0, 0)
-    elif der == 1:
-        # TODO: gira hacia la derecha y guarda ultimo_lado
-        motor(0, 0)
+        set_motor(0, 0)
+    elif left == 1:
+        # TODO: gira hacia la izquierda y guarda last_side
+        set_motor(0, 0)
+    elif right == 1:
+        # TODO: gira hacia la derecha y guarda last_side
+        set_motor(0, 0)
     else:
         # TODO: recuperacion cuando no ve linea
-        # usa ultimo_lado para buscar sin salirte.
-        motor(0, 0)
+        # usa last_side para buscar sin salirte.
+        set_motor(0, 0)
 
-    esperar()`;
+    sleep()`;
 }
 
 function debugSnippet() {
   return `# Exploracion: no completa la vuelta, solo sirve para entender sensores.
 for paso in range(160):
-    izq, centro, der = leer_linea()
-    error = leer_error()
-    imprimir(paso, "sensores=", (izq, centro, der), "error=", round(error, 2), "v=", round(leer_velocidad(), 1))
-    motor(30, 30)
-    esperar()`;
+    left, center, right = read_line()
+    print(paso, "sensores=", (left, center, right), "v=", round(get_speed(), 1))
+    set_motor(30, 30)
+    sleep()`;
 }
 
 function solutionSnippet(track) {
-  return `# Solucion de referencia: control PD + velocidad adaptativa.
+  return `# Solucion de referencia: el error se calcula desde read_camera().
 # Funciona en las cuatro pistas, pero aun se puede mejorar.
 
-MAX_PASOS = ${Math.max(track.laps, 1900)}
-VEL_RECTA = 32
-VEL_CURVA = 18
-KP = 38
-KD = 14
+MAX_PASOS = ${Math.ceil(Math.max(track.laps, 4200) / 6)}
+STRAIGHT_SPEED = 16
+CORNER_SPEED = 8
+KP = 28
+KD = 22
 
-ultimo_error = 0
+last_error = 0
+last_side = 0
+lost_frames = 0
 
 
-def elegir_velocidad(error):
+def calculate_error():
+    global last_side, lost_frames
+    camera = read_camera()
+    total = sum(camera)
+
+    if total > 0:
+        center = (len(camera) - 1) / 2
+        weighted = 0
+        for i, value in enumerate(camera):
+            weighted += (i - center) * value
+        error = weighted / total / center
+        last_side = -1 if error < 0 else 1 if error > 0 else last_side
+        lost_frames = 0
+        return error
+
+    lost_frames += 1
+    return last_side * min(1.8, 0.8 + lost_frames * 0.08)
+
+
+def choose_speed(error):
     if abs(error) > 1.0:
         return 14
     if abs(error) > 0.25:
-        return VEL_CURVA
-    return VEL_RECTA
+        return CORNER_SPEED
+    return STRAIGHT_SPEED
 
 
-def controlar(error):
-    global ultimo_error
-    derivada = error - ultimo_error
-    ultimo_error = error
-    return error * KP + derivada * KD
+def control(error):
+    global last_error
+    derivative = error - last_error
+    last_error = error
+    return error * KP + derivative * KD
 
 
 for paso in range(MAX_PASOS):
-    error = leer_error()
-    velocidad = elegir_velocidad(error)
-    correccion = controlar(error)
+    error = calculate_error()
+    speed = choose_speed(error)
+    correction = control(error)
 
-    motor(velocidad - correccion, velocidad + correccion)
-    esperar()
+    set_motor(speed - correction, speed + correction)
+    sleep()
 
-    if paso % 100 == 0:
-        imprimir(paso, "error=", round(error, 2), "v=", round(leer_velocidad(), 1))`;
+    if paso % 50 == 0:
+        print(paso, "error=", round(error, 2), "camara=", read_camera())`;
 }
 
 async function boot() {
@@ -232,6 +259,7 @@ async function runPython() {
     const data = await response.json();
     if (!response.ok || data.error) throw new Error(data.error || "Error ejecutando Python");
     frames = data.frames || [];
+    playbackStep = Math.max(1, Math.ceil(frames.length / 1200));
     frameIndex = 0;
     output.textContent = (data.console || []).join("\n");
     if (!output.textContent) output.textContent = "Python terminado sin imprimir mensajes.";
@@ -253,7 +281,9 @@ function playFrames() {
       summarize();
       return;
     }
-    car = frames[frameIndex++];
+    const nextIndex = Math.min(frames.length - 1, frameIndex + playbackStep - 1);
+    car = frames[nextIndex];
+    frameIndex = nextIndex + 1;
     updateTelemetry(car);
     render();
   }, 16);
@@ -265,7 +295,9 @@ function stepFrame() {
     return;
   }
   stopPlayer();
-  if (frameIndex < frames.length) car = frames[frameIndex++];
+  if (frameIndex < frames.length) {
+    car = frames[frameIndex++];
+  }
   updateTelemetry(car);
   render();
   if (frameIndex >= frames.length) summarize();
@@ -273,7 +305,7 @@ function stepFrame() {
 
 function summarize() {
   if (!car) return;
-  if (car.lapDone) setMessage(`Vuelta completada en ${car.ticks} ciclos.`, "win");
+  if (car.lapDone) setMessage(`Vuelta completada en ${formatSeconds(car.time ?? car.ticks * SIM_DT)}.`, "win");
   else if (car.failed) setMessage("Simulacion fallida. Revisa velocidad, kp o logica.", "error");
   else setMessage("El programa termino antes de completar la vuelta.", "");
 }
@@ -305,7 +337,8 @@ function fitCanvas() {
 function render() {
   if (!tracks.length || !car) return;
   fitCanvas();
-  const scale = Math.min(canvas.width / world.width, canvas.height / world.height);
+  const baseScale = Math.min(canvas.width / world.width, canvas.height / world.height);
+  const scale = baseScale * zoom;
   const ox = (canvas.width - world.width * scale) / 2;
   const oy = (canvas.height - world.height * scale) / 2;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -316,7 +349,7 @@ function render() {
   drawEnvironment();
   drawTrack();
   drawStartLine();
-  drawProgress();
+  drawDrivenPath();
   drawCar();
   drawSensors();
 }
@@ -355,59 +388,125 @@ function strokePath(points, width, color, dash = null) {
 
 function drawTrack() {
   const track = tracks[currentTrackIndex];
-  strokePath(track.points, track.asphaltWidth + 18, "#f4f6f8", [18, 18]);
-  strokePath(track.points, track.asphaltWidth, "#363b45");
-  strokePath(track.points, track.asphaltWidth - 22, "#2b3039");
+  strokePath(track.points, track.asphaltWidth + 2, "#f4f5f7", [7, 7]);
+  strokePath(track.points, track.asphaltWidth + 1, "#b91c2c", [9, 9]);
+  strokePath(track.points, track.asphaltWidth, "#343842");
+  strokePath(track.points, Math.max(2, track.asphaltWidth - 3), "#282d35");
+  strokePath(track.points, 0.6, "rgba(255,255,255,.22)", [16, 24]);
   strokePath(track.points, track.lineWidth, "#050608");
 }
 
 function drawStartLine() {
-  const points = tracks[currentTrackIndex].points;
+  const track = tracks[currentTrackIndex];
+  const points = track.points;
   const a = points[0];
   const b = points[1];
+  const width = Math.max(18, track.asphaltWidth * 1.45);
+  const length = Math.max(12, track.asphaltWidth * 0.95);
+  const cols = 6;
+  const rows = 4;
+  const cellW = width / cols;
+  const cellH = length / rows;
   ctx.save();
   ctx.translate(a[0], a[1]);
   ctx.rotate(Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2);
-  for (let row = -3; row <= 2; row++) {
-    for (let col = -2; col <= 1; col++) {
-      ctx.fillStyle = (row + col) % 2 === 0 ? "#fff" : "#111318";
-      ctx.fillRect(col * 18, row * 14, 18, 14);
+  ctx.strokeStyle = "rgba(0,0,0,.45)";
+  ctx.lineWidth = 1.2;
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      ctx.fillStyle = (row + col) % 2 === 0 ? "#f8fafc" : "#101114";
+      ctx.fillRect(-width / 2 + col * cellW, -length / 2 + row * cellH, cellW, cellH);
+      ctx.strokeRect(-width / 2 + col * cellW, -length / 2 + row * cellH, cellW, cellH);
     }
   }
   ctx.restore();
 }
 
-function drawProgress() {
-  const points = tracks[currentTrackIndex].points;
-  const end = Math.max(2, Math.floor(points.length * Math.min(car.progress || 0, .999)));
-  strokePath(points.slice(0, end), 5, "rgba(40,209,124,.52)");
+function drawDrivenPath() {
+  if (!frames.length) return;
+  const visibleCount = Math.max(1, Math.min(frameIndex || 1, frames.length));
+  const visible = frames.slice(0, visibleCount);
+  if (visible.length < 2) return;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.strokeStyle = "rgba(0,0,0,.35)";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  visible.forEach((frame, index) => {
+    if (index === 0) ctx.moveTo(frame.x, frame.y);
+    else ctx.lineTo(frame.x, frame.y);
+  });
+  ctx.stroke();
+
+  for (let i = 1; i < visible.length; i++) {
+    const previous = visible[i - 1];
+    const current = visible[i];
+    const offTrackNow = (current.offTrack || 0) > (previous.offTrack || 0);
+    ctx.strokeStyle = offTrackNow ? "rgba(255,77,104,.88)" : "rgba(40,209,124,.72)";
+    ctx.lineWidth = offTrackNow ? 4.5 : 3.5;
+    ctx.beginPath();
+    ctx.moveTo(previous.x, previous.y);
+    ctx.lineTo(current.x, current.y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function drawCar() {
   ctx.save();
   ctx.translate(car.x, car.y);
-  ctx.rotate(car.angle);
-  ctx.scale(0.45, 0.45);
-  ctx.fillStyle = "rgba(0,0,0,.32)";
+  ctx.rotate(car.angle + Math.PI / 2);
+  ctx.scale(0.38, 0.38);
+
+  ctx.fillStyle = "rgba(0,0,0,.34)";
   ctx.beginPath();
-  ctx.ellipse(0, 8, 40, 60, 0, 0, TAU);
+  ctx.ellipse(0, 10, 38, 66, 0, 0, TAU);
   ctx.fill();
-  ctx.fillStyle = "#05070b";
-  roundRect(-36, -34, 17, 27, 4); roundRect(19, -34, 17, 27, 4); roundRect(-37, 13, 18, 30, 4); roundRect(19, 13, 18, 30, 4);
+
+  ctx.fillStyle = "#06080c";
+  roundRect(-40, -34, 16, 30, 5);
+  roundRect(24, -34, 16, 30, 5);
+  roundRect(-41, 14, 17, 34, 5);
+  roundRect(24, 14, 17, 34, 5);
+
   ctx.fillStyle = "#f8fafc";
-  roundRect(-33, -56, 66, 10, 3); roundRect(-37, 42, 74, 11, 3);
-  const body = ctx.createLinearGradient(0, -60, 0, 52);
-  body.addColorStop(0, "#ff5068"); body.addColorStop(.48, "#d30f2f"); body.addColorStop(1, "#780d20");
+  roundRect(-38, -66, 76, 9, 3);
+  roundRect(-42, 50, 84, 10, 3);
+  ctx.fillStyle = "#111827";
+  roundRect(-31, -58, 62, 5, 2);
+  roundRect(-35, 45, 70, 5, 2);
+
+  const body = ctx.createLinearGradient(0, -68, 0, 55);
+  body.addColorStop(0, "#ff3f5d");
+  body.addColorStop(.45, "#d20f2f");
+  body.addColorStop(1, "#6f0b1b");
   ctx.fillStyle = body;
   ctx.beginPath();
-  ctx.moveTo(0, -62);
-  ctx.bezierCurveTo(22, -40, 25, -8, 17, 31);
-  ctx.lineTo(8, 50); ctx.lineTo(-8, 50);
-  ctx.bezierCurveTo(-25, 5, -22, -42, 0, -62);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = "#111827"; roundRect(-10, -12, 20, 27, 8);
-  ctx.fillStyle = "#ffd15c"; roundRect(-5, -38, 10, 19, 4);
-  ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.fillRect(-2, -52, 4, 92);
+  ctx.moveTo(0, -72);
+  ctx.bezierCurveTo(14, -58, 18, -36, 14, -10);
+  ctx.bezierCurveTo(24, 9, 19, 34, 8, 54);
+  ctx.lineTo(-8, 54);
+  ctx.bezierCurveTo(-19, 34, -24, 9, -14, -10);
+  ctx.bezierCurveTo(-18, -36, -14, -58, 0, -72);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#0f1724";
+  roundRect(-9, -18, 18, 28, 8);
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, -8, 15, Math.PI * .1, Math.PI * .9, false);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffd15c";
+  roundRect(-5, -43, 10, 20, 4);
+  ctx.fillStyle = "rgba(255,255,255,.72)";
+  ctx.fillRect(-2, -62, 4, 104);
   ctx.restore();
 }
 
@@ -418,31 +517,78 @@ function roundRect(x, y, w, h, r) {
 }
 
 function drawSensors() {
-  sensorOffsets.forEach((offset, index) => {
+  const camera = car.camera || [];
+  const half = (cameraPixels - 1) / 2;
+  for (let i = 0; i < cameraPixels; i++) {
+    const offset = ((i - half) / half) * (cameraSpan / 2);
     const point = sensorPoint(offset);
-    const on = (car.sensors || [])[index] === 1;
-    ctx.strokeStyle = on ? "rgba(40,209,124,.55)" : "rgba(255,77,104,.4)";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(car.x, car.y); ctx.lineTo(point.x, point.y); ctx.stroke();
-    ctx.fillStyle = on ? "#28d17c" : "#ff4d68";
-    ctx.beginPath(); ctx.arc(point.x, point.y, 4, 0, TAU); ctx.fill();
-  });
+    const on = camera[i] === 1;
+    if (i === 0) {
+      ctx.strokeStyle = "rgba(245,124,0,.28)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(car.x, car.y); ctx.lineTo(point.x, point.y); ctx.stroke();
+    }
+    ctx.fillStyle = on ? "#28d17c" : "rgba(255,255,255,.28)";
+    ctx.beginPath(); ctx.arc(point.x, point.y, on ? 2.4 : 1.7, 0, TAU); ctx.fill();
+  }
 }
 
 function sensorPoint(offset) {
-  const forward = 23;
+  const forward = 8;
   return {
     x: car.x + Math.cos(car.angle) * forward + Math.cos(car.angle + Math.PI / 2) * offset,
     y: car.y + Math.sin(car.angle) * forward + Math.sin(car.angle + Math.PI / 2) * offset
   };
 }
 
+function paintedPercent() {
+  if (!frames.length) return 0;
+  const visibleCount = Math.max(0, Math.min(frameIndex || 0, frames.length));
+  return Math.round((visibleCount / frames.length) * 100);
+}
+
+function formatSeconds(value) {
+  const minutes = Math.floor(value / 60);
+  const seconds = value - minutes * 60;
+  if (minutes <= 0) return `${seconds.toFixed(2)} s`;
+  return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+}
+
 function updateTelemetry(frame) {
-  lapText.textContent = `${Math.floor((frame.progress || 0) * 100)}%`;
-  speedText.textContent = `${Math.round((frame.speed || 0) * 3.6)} km/h`;
-  offText.textContent = `${frame.offTrack || 0} salidas`;
+  const kmh = Math.max(0, Math.round((frame.speed || 0) * 3.6));
+  const seconds = Math.max(0, frame.time ?? ((frame.ticks || 0) * SIM_DT));
+  const gaugeRatio = Math.min(kmh, MAX_GAUGE_SPEED) / MAX_GAUGE_SPEED;
+  const needleDeg = -125 + gaugeRatio * 250;
+
+  lapText.textContent = `${paintedPercent()}%`;
+  speedText.textContent = kmh;
+  speedText.closest(".speedometer")?.style.setProperty("--needle", `${needleDeg}deg`);
+  timeText.textContent = formatSeconds(seconds);
+  offText.textContent = frame.offTrack || 0;
   errorText.textContent = Number(frame.error || 0).toFixed(2);
-  sensorBars.forEach((bar, index) => bar.classList.toggle("on", (frame.sensors || [])[index] === 1));
+  updateCameraView(frame.camera || []);
+}
+
+function updateCameraView(camera) {
+  if (!cameraStrip.children.length) {
+    cameraStrip.innerHTML = Array.from({ length: cameraPixels }, () => "<i></i>").join("");
+  }
+  const total = camera.reduce((sum, value) => sum + value, 0);
+  let centroid = -1;
+  if (total > 0) {
+    centroid = camera.reduce((sum, value, index) => sum + index * value, 0) / total;
+  }
+  [...cameraStrip.children].forEach((cell, index) => {
+    cell.classList.toggle("on", camera[index] === 1);
+    cell.classList.toggle("centroid", total > 0 && Math.round(centroid) === index);
+  });
+  if (total === 0) {
+    cameraText.textContent = "sin linea";
+    return;
+  }
+  const center = (camera.length - 1) / 2;
+  const error = (centroid - center) / center;
+  cameraText.textContent = `px ${centroid.toFixed(1)} · error ${error.toFixed(2)}`;
 }
 
 function setMessage(text, kind) {
@@ -470,6 +616,8 @@ editor.addEventListener("keydown", (event) => {
 runBtn.addEventListener("click", runPython);
 stepBtn.addEventListener("click", stepFrame);
 resetBtn.addEventListener("click", reset);
+zoomInBtn.addEventListener("click", () => { zoom = Math.min(3, +(zoom + 0.25).toFixed(2)); render(); });
+zoomOutBtn.addEventListener("click", () => { zoom = Math.max(0.75, +(zoom - 0.25).toFixed(2)); render(); });
 snippetSelect.addEventListener("change", () => {
   if (!snippetSelect.value || !tracks.length) return;
   const track = tracks[currentTrackIndex];

@@ -9,84 +9,245 @@
   <body class="docs-page">
     <header class="topbar">
       <div class="brand">
-        <div class="logo">F1</div>
+        <img class="logo" src="logo.png" alt="Logo">
         <div>
-          <h1>Documentacion</h1>
-          <p>API, estrategia y pistas para resolver el reto sin copiar una solucion cerrada.</p>
+          <h1>Formula Python Lab</h1>
+          <p class="brand-meta"><span>@amanza17</span><a href="https://github.com/Amanza17/talleres_creg#" target="_blank" rel="noreferrer">Star this repo on GitHub</a></p>
         </div>
       </div>
       <div class="toolbar"><a class="doc-link" href="index.html">Volver</a></div>
     </header>
 
-    <main class="docs-layout">
-      <section class="doc-section">
-        <h2>Objetivo</h2>
-        <p>Escribe un programa Python que controle el coche durante una vuelta completa. El coche tiene tres sensores frontales que detectan la linea negra. Si se sale demasiados frames, la simulacion termina.</p>
+    <main class="docs-layout pro-docs">
+      <section class="doc-hero">
+        <div>
+          <span class="eyebrow">Formula Python Lab</span>
+          <h2>Programa un piloto autonomo de F1</h2>
+          <p>Tu codigo lee una camara frontal, calcula donde esta la linea y decide la potencia de los motores. La fisica avanza cada tick, pero tu controlador solo decide cada varios ticks, como en un sistema real.</p>
+          <div class="doc-badges">
+            <span>Python real</span>
+            <span>Camara 11 px</span>
+            <span>Fisica 0.02 s</span>
+            <span>Windows/Linux</span>
+          </div>
+        </div>
+        <figure class="hero-visual" aria-label="Camara del coche apuntando a la linea">
+          <svg viewBox="0 0 520 260" role="img">
+            <rect width="520" height="260" rx="14" fill="#101010"/>
+            <path d="M-30 165 C70 128 136 160 202 178 C285 200 360 168 552 110" fill="none" stroke="#343842" stroke-width="58" stroke-linecap="round"/>
+            <path d="M-30 165 C70 128 136 160 202 178 C285 200 360 168 552 110" fill="none" stroke="#262b32" stroke-width="40" stroke-linecap="round"/>
+            <path d="M-30 165 C70 128 136 160 202 178 C285 200 360 168 552 110" fill="none" stroke="#050608" stroke-width="10" stroke-linecap="round"/>
+            <path d="M-30 165 C70 128 136 160 202 178 C285 200 360 168 552 110" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="14 18"/>
+            <g transform="translate(222 174) rotate(106)">
+              <ellipse cx="0" cy="8" rx="26" ry="52" fill="rgba(0,0,0,.35)"/>
+              <path d="M0 -58 L17 -32 L14 26 L0 48 L-14 26 L-17 -32 Z" fill="#ff405f"/>
+              <path d="M0 -48 L10 -27 L8 22 L0 38 L-8 22 L-10 -27 Z" fill="#d20f2f"/>
+              <rect x="-34" y="-28" width="14" height="24" rx="4" fill="#050608"/>
+              <rect x="20" y="-28" width="14" height="24" rx="4" fill="#050608"/>
+              <rect x="-34" y="12" width="14" height="26" rx="4" fill="#050608"/>
+              <rect x="20" y="12" width="14" height="26" rx="4" fill="#050608"/>
+              <rect x="-30" y="-50" width="60" height="7" rx="3" fill="#f8fafc"/>
+              <rect x="-36" y="43" width="72" height="8" rx="3" fill="#f8fafc"/>
+              <g transform="translate(0 -74)">
+                <path d="M0 0 L-92 -18" stroke="#F57C00" stroke-width="2" opacity=".75"/>
+                <path d="M0 0 L92 -18" stroke="#F57C00" stroke-width="2" opacity=".75"/>
+                <g transform="translate(-82 -26)">
+                  <rect width="164" height="18" rx="5" fill="#202020" stroke="#303030"/>
+                  <rect x="54" y="3" width="12" height="12" rx="2" fill="#2C2C2C"/>
+                  <rect x="68" y="3" width="12" height="12" rx="2" fill="#28d17c"/>
+                  <rect x="82" y="3" width="12" height="12" rx="2" fill="#28d17c"/>
+                  <rect x="96" y="3" width="12" height="12" rx="2" fill="#28d17c"/>
+                  <line x1="82" y1="-4" x2="82" y2="22" stroke="#F57C00" stroke-dasharray="3 3"/>
+                </g>
+              </g>
+            </g>
+            <text x="24" y="34" fill="#B5B5B5" font-size="15">La camara va delante del morro y lee una fila transversal a la pista</text>
+          </svg>
+        </figure>
       </section>
 
-      <section class="doc-section">
-        <h2>API Disponible</h2>
-        <div class="api-grid">
-          <code>izq, centro, der = leer_linea()</code><p>Devuelve 1 si cada sensor ve la linea negra y 0 si ve asfalto.</p>
-          <code>error = leer_error()</code><p>Devuelve un error aproximado: negativo hacia izquierda, positivo hacia derecha.</p>
-          <code>motor(izquierda, derecha)</code><p>Potencia de cada lado entre -100 y 100. Diferencia de motores = giro.</p>
-          <code>esperar()</code><p>Avanza un frame de simulacion. Si no llamas a esta funcion, el coche no se mueve.</p>
-          <code>leer_velocidad()</code><p>Velocidad actual. Util para limitar rectas y curvas.</p>
-          <code>leer_progreso()</code><p>Porcentaje de vuelta completada entre 0 y 1.</p>
-          <code>tiempo()</code><p>Numero de frames simulados.</p>
-          <code>imprimir(...)</code><p>Escribe en consola sin saturar el navegador.</p>
+      <nav class="doc-toc">
+        <a href="#modelo">Modelo</a>
+        <a href="#api">API</a>
+        <a href="#camara">Camara</a>
+        <a href="#pid">PID</a>
+        <a href="#codigo">Plantilla</a>
+        <a href="#compat">Compatibilidad</a>
+      </nav>
+
+      <section id="modelo" class="doc-section">
+        <div class="section-head">
+          <span class="eyebrow">Modelo de simulacion</span>
+          <h2>Frecuencia de control y fisica</h2>
+          <p>La simulacion usa ticks fisicos de <strong>0.02 s</strong>. Tu programa no recalcula motores en cada tick: mantiene la ultima orden mientras el coche sigue avanzando.</p>
+          <p>Por defecto, <code>sleep()</code> avanza 6 ticks fisicos. Eso significa que tu controlador decide aproximadamente cada <strong>0.12 s</strong>. Puedes usar <code>sleep(5)</code> para reaccionar algo antes o <code>sleep(10)</code> para hacerlo mas dificil.</p>
+        </div>
+        <div class="model-cards">
+          <article><strong>Orden de motores</strong><span><code>set_motor()</code> no mueve el coche por si solo: deja preparada la potencia para los siguientes ticks.</span></article>
+          <article><strong>Inercia</strong><span>Los motores y el giro no cambian instantaneamente. Un <code>KP</code> alto puede llegar tarde y provocar rebotes.</span></article>
+          <article><strong>Adherencia</strong><span>Si pides demasiado giro a demasiada velocidad, aparece derrape y puede terminar en trompo.</span></article>
         </div>
       </section>
 
-      <section class="doc-section">
-        <h2>Plan de Trabajo</h2>
-        <ol>
-          <li>Haz que <code>calcular_error()</code> convierta sensores en un numero.</li>
-          <li>Guarda memoria del ultimo lado donde viste la linea para recuperarte si los tres sensores leen 0.</li>
-          <li>Implementa un controlador P: <code>correccion = error * KP</code>.</li>
-          <li>Anade derivada: usa <code>error - ultimo_error</code> para suavizar cambios bruscos.</li>
-          <li>Baja velocidad en curva: si <code>abs(error)</code> sube, usa <code>VEL_CURVA</code>.</li>
-          <li>Depura con <code>imprimir()</code> cada 50 pasos, no en cada frame.</li>
-        </ol>
+      <section id="api" class="doc-section">
+        <div class="section-head">
+          <span class="eyebrow">API Python</span>
+          <h2>Funciones disponibles</h2>
+          <p>La API por defecto usa nombres estilo Python. No hay wrappers en espanol salvo que importes <code>spanish.py</code>.</p>
+        </div>
+        <div class="api-cards">
+          <article><code>camera = read_camera()</code><p>Devuelve 11 valores 0/1 de izquierda a derecha. Es la entrada principal para calcular el error.</p></article>
+          <article><code>left, center, right = read_line()</code><p>Compatibilidad con tres sensores clasicos. Menos preciso que la camara.</p></article>
+          <article><code>set_motor(left, right)</code><p>Potencia de cada lado entre -100 y 100. Si el motor derecho es mayor, el coche gira a la izquierda o derecha segun la diferencia.</p></article>
+          <article><code>sleep(cycles=6)</code><p>Avanza la fisica. Tu codigo queda parado mientras el coche sigue moviendose con la ultima orden.</p></article>
+          <article><code>get_speed()</code><p>Velocidad actual del coche. Sirve para bajar potencia en curva o detectar inestabilidad.</p></article>
+          <article><code>get_progress()</code><p>Progreso de vuelta entre 0 y 1. Util para estrategias por sector.</p></article>
+          <article><code>time()</code><p>Tiempo simulado en segundos. Funciona igual en Windows y Linux.</p></article>
+          <article><code>print(...)</code><p>Imprime en consola. Usalo cada 25-50 decisiones, no en cada iteracion.</p></article>
+        </div>
       </section>
 
-      <section class="doc-section">
-        <h2>Esqueleto Recomendado</h2>
-        <pre><code>ultimo_error = 0
-ultimo_lado = 0
+      <section id="camara" class="doc-section split-section">
+        <div>
+          <span class="eyebrow">Camara lineal</span>
+          <h2>Como calcular el error</h2>
+          <p><code>read_camera()</code> devuelve pixeles activos donde la camara ve la linea. El centro de la camara es el pixel medio. El centroide de los pixeles activos te dice hacia donde esta desplazada la linea.</p>
+          <pre><code>camera = read_camera()
+total = sum(camera)
+center = (len(camera) - 1) / 2
+weighted = 0
 
-def calcular_error():
-    global ultimo_lado
-    izq, centro, der = leer_linea()
-    # convierte sensores a error y actualiza ultimo_lado
-    return 0
+for i, value in enumerate(camera):
+    weighted += (i - center) * value
 
-def elegir_velocidad(error):
-    # baja velocidad si abs(error) es grande
-    return 30
-
-def controlar(error):
-    global ultimo_error
-    derivada = error - ultimo_error
-    ultimo_error = error
-    return 0
-
-for paso in range(MAX_PASOS):
-    error = calcular_error()
-    velocidad = elegir_velocidad(error)
-    correccion = controlar(error)
-    motor(velocidad - correccion, velocidad + correccion)
-    esperar()</code></pre>
+error = weighted / total / center</code></pre>
+          <p>Resultado: <strong>error negativo</strong> significa linea a la izquierda, <strong>error positivo</strong> significa linea a la derecha, y <strong>0</strong> significa centrado.</p>
+        </div>
+        <figure class="camera-diagram">
+          <svg viewBox="0 0 520 220" role="img" aria-label="Centroide de camara">
+            <rect width="520" height="220" rx="12" fill="#0D0D0D" stroke="#303030"/>
+            <text x="28" y="42" fill="#B5B5B5" font-size="16">Pixeles de read_camera()</text>
+            <g transform="translate(42 78)">
+              <rect width="436" height="44" rx="8" fill="#171717" stroke="#303030"/>
+              <g>
+                <rect x="8" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="48" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="88" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="128" y="8" width="28" height="28" rx="4" fill="#28d17c"/>
+                <rect x="168" y="8" width="28" height="28" rx="4" fill="#28d17c"/>
+                <rect x="208" y="8" width="28" height="28" rx="4" fill="#28d17c"/>
+                <rect x="248" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="288" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="328" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="368" y="8" width="28" height="28" rx="4" fill="#2C2C2C"/>
+                <rect x="408" y="8" width="20" height="28" rx="4" fill="#2C2C2C"/>
+              </g>
+              <line x1="218" y1="-12" x2="218" y2="58" stroke="#F57C00" stroke-dasharray="4 4"/>
+              <line x1="178" y1="-12" x2="178" y2="58" stroke="#FF9800" stroke-width="3"/>
+              <text x="192" y="82" fill="#F57C00" font-size="14">centro</text>
+              <text x="132" y="104" fill="#FF9800" font-size="14">centroide detectado</text>
+            </g>
+          </svg>
+        </figure>
       </section>
 
-      <section class="doc-section">
-        <h2>Consejos</h2>
-        <ul>
-          <li>Si vibra en recta, baja <code>KP</code> o anade <code>KD</code>.</li>
-          <li>Si se abre en curvas, baja velocidad antes de subir mucho <code>KP</code>.</li>
-          <li>Si pierde la linea en una horquilla, usa memoria: gira hacia el ultimo lado visto.</li>
-          <li>Empieza en Academy GP y no pases a Grand Prix Pro hasta completar dos vueltas limpias.</li>
-        </ul>
+      <section id="pid" class="doc-section">
+        <div class="section-head">
+          <span class="eyebrow">Control P / PI / PID</span>
+          <h2>Que hace cada termino</h2>
+          <p>El controlador convierte el error de camara en una correccion de motor. Esa correccion se resta a un lado y se suma al otro.</p>
+        </div>
+        <div class="pid-grid">
+          <article><h3>P: Proporcional</h3><code>correction = error * KP</code><p>Gira segun el error actual. Si <code>KP</code> es bajo, el coche se abre en curvas. Si es alto, rebota, zigzaguea o trompea.</p></article>
+          <article><h3>I: Integral</h3><code>integral += error
+correction += integral * KI</code><p>Acumula error pasado. Puede corregir sesgos persistentes, pero en este reto suele ser peligroso: si acumula demasiado, tarda en deshacer el giro.</p></article>
+          <article><h3>D: Derivativo</h3><code>derivative = error - last_error
+correction += derivative * KD</code><p>Frena cambios bruscos. Ayuda a que un <code>KP</code> util no provoque rebotes.</p></article>
+          <article><h3>Velocidad adaptativa</h3><code>if abs(error) &gt; 0.35:
+    speed = CORNER_SPEED</code><p>No todo se arregla con PID. Si el error crece, baja velocidad antes de subir mucho <code>KP</code>.</p></article>
+        </div>
+      </section>
+
+      <section class="doc-section effect-section">
+        <h2>Efectos de los parametros</h2>
+        <div class="effect-grid">
+          <div><strong>KP bajo</strong><span>Gira tarde, se abre y pierde la linea.</span></div>
+          <div><strong>KP alto</strong><span>Rebota de lado a lado; con la fisica nueva puede hacer trompo.</span></div>
+          <div><strong>KD bajo</strong><span>El coche corrige, pero llega con oscilacion.</span></div>
+          <div><strong>KD alto</strong><span>Se vuelve lento de reaccion y puede no cerrar curvas rapidas.</span></div>
+          <div><strong>KI alto</strong><span>Acumula memoria excesiva; peligroso si la camara pierde la linea.</span></div>
+          <div><strong>Velocidad alta</strong><span>Necesita anticipacion. Baja en curva antes de tocar demasiado el PID.</span></div>
+        </div>
+      </section>
+
+      <section id="codigo" class="doc-section">
+        <div class="section-head">
+          <span class="eyebrow">Plantilla de trabajo</span>
+          <h2>Estructura recomendada</h2>
+        </div>
+        <pre><code>MAX_PASOS = 700
+STRAIGHT_SPEED = 16
+CORNER_SPEED = 8
+KP = 28
+KD = 22
+
+last_error = 0
+last_side = 0
+
+
+def calculate_error():
+    global last_side
+    camera = read_camera()
+    total = sum(camera)
+
+    if total == 0:
+        return last_side * 1.2
+
+    center = (len(camera) - 1) / 2
+    weighted = 0
+    for i, value in enumerate(camera):
+        weighted += (i - center) * value
+
+    error = weighted / total / center
+    if error != 0:
+        last_side = -1 if error &lt; 0 else 1
+    return error
+
+
+def choose_speed(error):
+    if abs(error) &gt; 0.35:
+        return CORNER_SPEED
+    return STRAIGHT_SPEED
+
+
+def control(error):
+    global last_error
+    derivative = error - last_error
+    last_error = error
+    return error * KP + derivative * KD
+
+
+for step in range(MAX_PASOS):
+    error = calculate_error()
+    speed = choose_speed(error)
+    correction = control(error)
+    set_motor(speed - correction, speed + correction)
+    sleep()</code></pre>
+      </section>
+
+      <section id="compat" class="doc-section split-section">
+        <div>
+          <span class="eyebrow">Compatibilidad</span>
+          <h2>Windows y Linux</h2>
+          <p>El servidor evita APIs exclusivas de Unix como <code>signal.alarm</code>. El tiempo limite de Python se controla con trazado interno y <code>time.monotonic()</code>, disponible en Windows y Linux.</p>
+          <p>La API por defecto usa nombres Python. Si alguien necesita alias en espanol puede escribir <code>from spanish import *</code>.</p>
+        </div>
+        <div class="api-cards compact">
+          <article><code>leer_camara()</code><p>Alias de <code>read_camera()</code>.</p></article>
+          <article><code>motor(izquierda, derecha)</code><p>Alias de <code>set_motor(left, right)</code>.</p></article>
+          <article><code>esperar()</code><p>Alias de <code>sleep()</code>.</p></article>
+          <article><code>tiempo()</code><p>Alias de <code>time()</code>.</p></article>
+        </div>
       </section>
     </main>
   </body>

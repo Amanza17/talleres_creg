@@ -9,14 +9,16 @@
   <body>
     <header class="topbar">
       <div class="brand">
-        <div class="logo">F1</div>
+        <img class="logo" src="logo.png" alt="Logo">
         <div>
           <h1>Formula Python Lab</h1>
-          <p>Python real: sensores, memoria y control de velocidad.</p>
+          <p class="brand-meta"><span>@amanza17</span><a href="https://github.com/Amanza17/talleres_creg#" target="_blank" rel="noreferrer">Star this repo on GitHub</a></p>
         </div>
       </div>
       <div class="toolbar">
         <a class="doc-link" href="docs.html" target="_blank" rel="noreferrer">Docs</a>
+        <button id="zoomOutBtn" class="icon-btn" type="button" title="Alejar">−</button>
+        <button id="zoomInBtn" class="icon-btn" type="button" title="Acercar">+</button>
         <button id="resetBtn" class="icon-btn" type="button" title="Reiniciar simulacion">↻</button>
         <button id="stepBtn" type="button" title="Avanzar un frame">Frame</button>
         <button id="runBtn" type="button" title="Ejecutar Python">▶ Ejecutar</button>
@@ -32,14 +34,14 @@
         <section class="block">
           <div class="block-title">API Python</div>
           <div class="docs">
-            <code>leer_linea()</code>
-            <code>leer_error()</code>
-            <code>motor(izq, der)</code>
-            <code>esperar()</code>
-            <code>leer_velocidad()</code>
-            <code>leer_progreso()</code>
-            <code>tiempo()</code>
-            <code>imprimir(valor)</code>
+            <code>read_camera()</code>
+            <code>read_line()</code>
+            <code>set_motor(left, right)</code>
+            <code>sleep()</code>
+            <code>get_speed()</code>
+            <code>get_progress()</code>
+            <code>time()</code>
+            <code>print(value)</code>
             <code>def controlar(e):</code>
             <code>for paso in range(N):</code>
             <code>if error &gt; 0:</code>
@@ -86,16 +88,25 @@
             <strong id="simTitle">Circuito</strong>
           </div>
           <div class="stats">
-            <span id="lapText">0%</span>
-            <span id="speedText">0 km/h</span>
-            <span id="offText">0 salidas</span>
+            <span><small>Pintado</small><strong id="lapText">0%</strong></span>
+            <span><small>Tiempo</small><strong id="timeText">0.0 s</strong></span>
+            <span><small>Salidas</small><strong id="offText">0</strong></span>
           </div>
         </div>
         <canvas id="gameCanvas" width="1000" height="680" aria-label="Simulador de Formula 1"></canvas>
         <div class="telemetry">
-          <div>
-            <span class="label">Sensores</span>
-            <div id="sensorBars" class="sensor-bars"><i></i><i></i><i></i></div>
+          <div class="speedometer" aria-label="Velocimetro">
+            <div class="dial">
+              <i></i>
+              <b></b>
+            </div>
+            <strong id="speedText">0</strong>
+            <span>km/h</span>
+          </div>
+          <div class="camera-panel">
+            <span class="label">Camara</span>
+            <div id="cameraStrip" class="camera-strip"></div>
+            <div class="camera-readout"><span>centro</span><strong id="cameraText">sin linea</strong></div>
           </div>
           <div>
             <span class="label">Error</span>
