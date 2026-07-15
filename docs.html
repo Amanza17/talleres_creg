@@ -12,7 +12,7 @@
         <img class="logo" src="logo.png" alt="Logo">
         <div>
           <h1>Formula Python Lab</h1>
-          <p class="brand-meta"><span>@amanza17</span><a href="https://github.com/Amanza17/talleres_creg#" target="_blank" rel="noreferrer">Star this repo on GitHub</a></p>
+          <p class="brand-meta"><span>Castilla y Leon Edition · @amanza17</span><a href="https://github.com/Amanza17/talleres_creg#" target="_blank" rel="noreferrer">Star this repo on GitHub</a></p>
         </div>
       </div>
       <div class="toolbar"><a class="doc-link" href="index.html">Volver</a></div>
@@ -80,7 +80,7 @@
           <span class="eyebrow">Modelo de simulacion</span>
           <h2>Frecuencia de control y fisica</h2>
           <p>La simulacion usa ticks fisicos de <strong>0.02 s</strong>. Tu programa no recalcula motores en cada tick: mantiene la ultima orden mientras el coche sigue avanzando.</p>
-          <p>Por defecto, <code>sleep()</code> avanza 6 ticks fisicos. Eso significa que tu controlador decide aproximadamente cada <strong>0.12 s</strong>. Puedes usar <code>sleep(5)</code> para reaccionar algo antes o <code>sleep(10)</code> para hacerlo mas dificil.</p>
+          <p>Por defecto, <code>sleep()</code> avanza 3 ticks fisicos. Eso significa que tu controlador decide aproximadamente cada <strong>0.06 s</strong>. Puedes usar <code>sleep(5)</code> o <code>sleep(10)</code> para hacerlo mas dificil y simular mas retardo.</p>
         </div>
         <div class="model-cards">
           <article><strong>Orden de motores</strong><span><code>set_motor()</code> no mueve el coche por si solo: deja preparada la potencia para los siguientes ticks.</span></article>
@@ -99,7 +99,7 @@
           <article><code>camera = read_camera()</code><p>Devuelve 11 valores 0/1 de izquierda a derecha. Es la entrada principal para calcular el error.</p></article>
           <article><code>left, center, right = read_line()</code><p>Compatibilidad con tres sensores clasicos. Menos preciso que la camara.</p></article>
           <article><code>set_motor(left, right)</code><p>Potencia de cada lado entre -100 y 100. Si el motor derecho es mayor, el coche gira a la izquierda o derecha segun la diferencia.</p></article>
-          <article><code>sleep(cycles=6)</code><p>Avanza la fisica. Tu codigo queda parado mientras el coche sigue moviendose con la ultima orden.</p></article>
+          <article><code>sleep(cycles=3)</code><p>Avanza la fisica. Tu codigo queda parado mientras el coche sigue moviendose con la ultima orden.</p></article>
           <article><code>get_speed()</code><p>Velocidad actual del coche. Sirve para bajar potencia en curva o detectar inestabilidad.</p></article>
           <article><code>get_progress()</code><p>Progreso de vuelta entre 0 y 1. Util para estrategias por sector.</p></article>
           <article><code>time()</code><p>Tiempo simulado en segundos. Funciona igual en Windows y Linux.</p></article>

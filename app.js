@@ -1,6 +1,7 @@
 const canvas = document.querySelector("#gameCanvas");
 const ctx = canvas.getContext("2d");
 const editor = document.querySelector("#codeEditor");
+const codeHighlight = document.querySelector("#codeHighlight");
 const lineNumbers = document.querySelector("#lineNumbers");
 const output = document.querySelector("#consoleOutput");
 const message = document.querySelector("#message");
@@ -12,8 +13,6 @@ const errorText = document.querySelector("#errorText");
 const cameraStrip = document.querySelector("#cameraStrip");
 const cameraText = document.querySelector("#cameraText");
 const trackList = document.querySelector("#trackList");
-const trackName = document.querySelector("#trackName");
-const trackDifficulty = document.querySelector("#trackDifficulty");
 const simTitle = document.querySelector("#simTitle");
 const runBtn = document.querySelector("#runBtn");
 const stepBtn = document.querySelector("#stepBtn");
@@ -21,6 +20,11 @@ const resetBtn = document.querySelector("#resetBtn");
 const zoomInBtn = document.querySelector("#zoomInBtn");
 const zoomOutBtn = document.querySelector("#zoomOutBtn");
 const snippetSelect = document.querySelector("#snippetSelect");
+const fileSelect = document.querySelector("#fileSelect");
+const fileNameInput = document.querySelector("#fileNameInput");
+const fileList = document.querySelector("#fileList");
+const loadFileBtn = document.querySelector("#loadFileBtn");
+const saveFileBtn = document.querySelector("#saveFileBtn");
 
 const TAU = Math.PI * 2;
 const SIM_DT = 0.02;
@@ -37,13 +41,14 @@ let player = null;
 let car = null;
 let zoom = 1;
 let playbackStep = 1;
+let savedFiles = [];
 
 function starterFor(track) {
   return `# Python real: este codigo se ejecuta en server.py
 # Circuito: ${track.name} (${track.difficulty})
 # Reto: completa las funciones. No basta con ir recto.
 
-MAX_PASOS = ${Math.ceil(track.laps / 6)}
+MAX_PASOS = ${Math.ceil(Math.max(track.laps * 2, 9900) / 3)}
 
 # Ajusta estos valores despues de mirar la telemetria.
 STRAIGHT_SPEED = ${Math.max(30, track.speed - 6)}
@@ -95,7 +100,7 @@ function ifSnippet(track) {
   return `# Plantilla alternativa: maquina de estados.
 # Completa las ramas y usa memoria para recuperar la linea.
 
-MAX_PASOS = ${Math.ceil(track.laps / 6)}
+MAX_PASOS = ${Math.ceil(Math.max(track.laps * 2, 9900) / 3)}
 speed = ${Math.max(24, track.speed - 14)}
 last_side = 0
 
@@ -130,13 +135,13 @@ for paso in range(160):
 
 function solutionSnippet(track) {
   return `# Solucion de referencia: el error se calcula desde read_camera().
-# Funciona en las cuatro pistas, pero aun se puede mejorar.
+# Funciona en las diez pistas, pero aun se puede mejorar.
 
-MAX_PASOS = ${Math.ceil(Math.max(track.laps, 4200) / 6)}
-STRAIGHT_SPEED = 16
-CORNER_SPEED = 8
-KP = 28
-KD = 22
+MAX_PASOS = ${Math.ceil(Math.max(track.laps * 2, 9900) / 3)}
+STRAIGHT_SPEED = 8
+CORNER_SPEED = 4
+KP = 14
+KD = 6
 
 last_error = 0
 last_side = 0
@@ -163,9 +168,9 @@ def calculate_error():
 
 
 def choose_speed(error):
-    if abs(error) > 1.0:
-        return 14
-    if abs(error) > 0.25:
+    if abs(error) > 0.7:
+        return CORNER_SPEED
+    if abs(error) > 0.18:
         return CORNER_SPEED
     return STRAIGHT_SPEED
 
@@ -197,6 +202,7 @@ async function boot() {
     world = data.world;
     tracks = data.tracks;
     selectTrack(0, true);
+    await refreshFiles();
     setMessage("Listo. Escribe Python y pulsa Ejecutar.", "");
   } catch (error) {
     setMessage("Abre la actividad desde server.py: python3 server.py", "error");
@@ -204,9 +210,14 @@ async function boot() {
   }
 }
 
+function slugFileName(name) {
+  return `${name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "piloto"}.py`;
+}
+
 function selectTrack(index, replaceCode = false) {
   currentTrackIndex = index;
   const track = tracks[index];
+  if (!fileNameInput.value || fileNameInput.value === "piloto.py") fileNameInput.value = slugFileName(track.name);
   if (replaceCode || !editor.value.trim()) editor.value = starterFor(track);
   frames = [];
   frameIndex = 0;
@@ -241,9 +252,95 @@ function renderTrackList() {
 
 function updateText() {
   const track = tracks[currentTrackIndex];
-  trackName.textContent = track.name;
-  trackDifficulty.textContent = `${track.difficulty}. ${track.description}`;
   simTitle.textContent = track.name;
+}
+
+
+async function refreshFiles() {
+  try {
+    const response = await fetch("/solutions");
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || "No se pudieron listar archivos");
+    savedFiles = data.files || [];
+    fileSelect.innerHTML = `<option value="">Nuevo archivo</option>` + savedFiles.map((name) => `<option value="${name}">${name}</option>`).join("");
+    renderFileList();
+  } catch (error) {
+    setMessage(error.message, "error");
+  }
+}
+
+
+function renderFileList() {
+  if (!fileList) return;
+  if (!savedFiles.length) {
+    fileList.innerHTML = `<div class="empty">No hay archivos en solutions/</div>`;
+    return;
+  }
+  fileList.innerHTML = "";
+  savedFiles.forEach((name) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = name === fileNameInput.value ? "active" : "";
+    button.innerHTML = `<span>${name}</span>`;
+    button.addEventListener("click", () => {
+      fileSelect.value = name;
+      fileNameInput.value = name;
+      renderFileList();
+      loadSelectedFile();
+    });
+    fileList.appendChild(button);
+  });
+}
+
+function normalizedFileName() {
+  let name = fileNameInput.value.trim();
+  if (!name) name = slugFileName(tracks[currentTrackIndex]?.name || "piloto");
+  if (!name.endsWith(".py")) name += ".py";
+  fileNameInput.value = name;
+  return name;
+}
+
+async function saveCurrentFile() {
+  const name = normalizedFileName();
+  try {
+    const response = await fetch("/solution", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, code: editor.value })
+    });
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || "No se pudo guardar");
+    await refreshFiles();
+    fileSelect.value = data.name;
+    fileNameInput.value = data.name;
+    renderFileList();
+    setMessage(`Guardado en solutions/${data.name}.`, "win");
+  } catch (error) {
+    setMessage(error.message, "error");
+  }
+}
+
+async function loadSelectedFile() {
+  const name = fileSelect.value || normalizedFileName();
+  if (!name) return;
+  try {
+    const response = await fetch(`/solution?name=${encodeURIComponent(name)}`);
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || "No se pudo cargar");
+    editor.value = data.code || "";
+    fileNameInput.value = data.name;
+    fileSelect.value = data.name;
+    renderFileList();
+    updateLineNumbers();
+    frames = [];
+    frameIndex = 0;
+    car = startFrame(tracks[currentTrackIndex]);
+    updateTelemetry(car);
+    render();
+    setMessage(`Cargado solutions/${data.name}.`, "");
+  } catch (error) {
+    setMessage(error.message, "error");
+  }
 }
 
 async function runPython() {
@@ -596,12 +693,58 @@ function setMessage(text, kind) {
   message.className = `message ${kind || ""}`.trim();
 }
 
+
+function escapeHtml(text) {
+  return text.replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char]));
+}
+
+const pyKeywords = new Set(["and","as","assert","break","class","continue","def","del","elif","else","except","False","finally","for","from","global","if","import","in","is","lambda","None","nonlocal","not","or","pass","raise","return","True","try","while","with","yield"]);
+const pyBuiltins = new Set(["abs","all","any","bool","dict","enumerate","float","int","len","list","max","min","print","range","round","set","str","sum","tuple","zip"]);
+const pyApi = new Set(["read_camera","read_line","set_motor","sleep","get_speed","get_progress","time","math"]);
+
+function highlightPython(code) {
+  const tokenPattern = /(#.*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*\b|\n|\s+|.)/g;
+  let previousKeyword = "";
+  return code.replace(tokenPattern, (token) => {
+    if (token === "\n") return "\n";
+    if (/^\s+$/.test(token)) return token;
+    const escaped = escapeHtml(token);
+    if (token.startsWith("#")) return `<span class="tok-comment">${escaped}</span>`;
+    if (token.startsWith("'") || token.startsWith('"')) return `<span class="tok-string">${escaped}</span>`;
+    if (/^\d/.test(token)) return `<span class="tok-number">${escaped}</span>`;
+    if (/^[A-Za-z_]\w*$/.test(token)) {
+      if (previousKeyword === "def" || previousKeyword === "class") {
+        previousKeyword = "";
+        return `<span class="tok-defname">${escaped}</span>`;
+      }
+      if (pyKeywords.has(token)) {
+        previousKeyword = token;
+        return `<span class="tok-keyword">${escaped}</span>`;
+      }
+      previousKeyword = "";
+      if (pyApi.has(token)) return `<span class="tok-api">${escaped}</span>`;
+      if (pyBuiltins.has(token)) return `<span class="tok-builtin">${escaped}</span>`;
+    } else {
+      previousKeyword = "";
+    }
+    return escaped;
+  });
+}
+
+function updateHighlight() {
+  codeHighlight.innerHTML = highlightPython(editor.value) + "\n";
+  codeHighlight.scrollTop = editor.scrollTop;
+  codeHighlight.scrollLeft = editor.scrollLeft;
+}
+
 function updateLineNumbers() {
   const count = editor.value.split("\n").length;
   lineNumbers.textContent = Array.from({ length: count }, (_, index) => index + 1).join("\n");
+  updateHighlight();
 }
 
 editor.addEventListener("input", updateLineNumbers);
+editor.addEventListener("scroll", () => { codeHighlight.scrollTop = editor.scrollTop; codeHighlight.scrollLeft = editor.scrollLeft; });
 editor.addEventListener("keydown", (event) => {
   if (event.key === "Tab") {
     event.preventDefault();
@@ -616,6 +759,9 @@ editor.addEventListener("keydown", (event) => {
 runBtn.addEventListener("click", runPython);
 stepBtn.addEventListener("click", stepFrame);
 resetBtn.addEventListener("click", reset);
+saveFileBtn.addEventListener("click", saveCurrentFile);
+loadFileBtn.addEventListener("click", loadSelectedFile);
+fileSelect.addEventListener("change", () => { if (fileSelect.value) fileNameInput.value = fileSelect.value; renderFileList(); });
 zoomInBtn.addEventListener("click", () => { zoom = Math.min(3, +(zoom + 0.25).toFixed(2)); render(); });
 zoomOutBtn.addEventListener("click", () => { zoom = Math.max(0.75, +(zoom - 0.25).toFixed(2)); render(); });
 snippetSelect.addEventListener("change", () => {

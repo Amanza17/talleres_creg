@@ -3,6 +3,7 @@ import json
 import math
 import mimetypes
 import os
+import re
 import sys
 import time
 import types
@@ -11,34 +12,49 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent
+SOLUTIONS_DIR = ROOT / "solutions"
 TAU = math.pi * 2
 WORLD = {"width": 1000, "height": 680}
 TRACK_WIDTH_SCALE = 2.0
 SENSOR_OFFSETS = [-6, 0, 6]
 CAMERA_PIXELS = 11
 CAMERA_SPAN = 28
-CONTROL_INTERVAL = 6
+CONTROL_INTERVAL = 3
 PHYSICS_DT = 0.02
+
+
+def solution_path(name):
+    name = str(name or "").strip()
+    if not name.endswith(".py"):
+        name = f"{name}.py"
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}\.py", name):
+        raise ValueError("Nombre invalido. Usa algo como leon.py")
+    SOLUTIONS_DIR.mkdir(exist_ok=True)
+    target = (SOLUTIONS_DIR / name).resolve()
+    if SOLUTIONS_DIR.resolve() not in target.parents:
+        raise ValueError("Ruta invalida")
+    return target
+
 
 TRACK_DEFS = [
     {
         "id": "australia_melbourne",
-        "name": "Australia - Melbourne",
-        "difficulty": "Media",
-        "description": "Albert Park: lago central, rectas cortas, chicanes y sección rápida final.",
+        "name": "Avila - Muralla GP",
+        "difficulty": "Intermedia",
+        "description": "Albert Park con rectas cortas y cambios de direccion. Buen primer circuito serio para ajustar P y D.",
         "lineWidth": 3,
         "asphaltWidth": 13,
         "maxOff": 6,
         "laps": 1800,
         "speed": 34,
         "kp": 56,
-        "controls": [[145,548],[112,502],[112,370],[118,244],[146,142],[222,106],[310,116],[325,190],[292,246],[365,272],[510,250],[640,202],[785,174],[900,235],[914,340],[850,420],[735,450],[612,462],[535,518],[438,566],[300,566],[236,510]],
+        "controls": [[145,548],[112,500],[112,372],[120,248],[150,150],[224,108],[305,120],[338,178],[332,232],[392,266],[520,248],[648,205],[785,178],[892,238],[902,330],[836,410],[730,448],[615,462],[535,515],[440,560],[305,565],[238,510]],
     },
     {
         "id": "china_shanghai",
-        "name": "China - Shanghai",
+        "name": "Burgos - Morcilla Ring",
         "difficulty": "Dificil",
-        "description": "Shanghai: caracol inicial reconocible, recta larga y horquilla final.",
+        "description": "Shanghai castiga el retardo del controlador: caracol largo, recta fuerte y horquilla final.",
         "lineWidth": 4,
         "asphaltWidth": 16,
         "maxOff": 8,
@@ -49,22 +65,22 @@ TRACK_DEFS = [
     },
     {
         "id": "japan_suzuka",
-        "name": "Japon - Suzuka",
-        "difficulty": "Experto",
-        "description": "Suzuka: figura de ocho, eses, Degner, horquilla, Spoon y 130R.",
+        "name": "Leon - Catedral Chicane",
+        "difficulty": "Pesadilla",
+        "description": "Suzuka mezcla eses, cruce, horquilla y curvas rapidas. Necesita centroide fino y velocidad adaptativa.",
         "lineWidth": 4,
         "asphaltWidth": 16,
         "maxOff": 8,
         "laps": 2300,
         "speed": 26,
         "kp": 72,
-        "controls": [[130,420],[190,342],[268,372],[224,304],[300,246],[394,278],[478,226],[596,186],[700,116],[872,180],[842,292],[704,320],[585,330],[558,428],[672,500],[742,548],[610,586],[474,544],[358,492],[240,540],[160,500]],
+        "controls": [[132,420],[190,352],[250,365],[276,318],[342,264],[420,278],[505,238],[604,194],[704,140],[846,195],[812,280],[696,320],[592,340],[584,418],[674,492],[724,540],[610,574],[480,540],[365,496],[245,532],[164,494]],
     },
     {
         "id": "bahrain_sakhir",
-        "name": "Barein - Sakhir",
-        "difficulty": "Media",
-        "description": "Sakhir: rectas fuertes, curvas de tracción y sector medio técnico.",
+        "name": "Zamora - Sanabria Lago Chicane",
+        "difficulty": "Intermedia",
+        "description": "Sakhir pasado por el Lago de Sanabria: frenadas, curvas de traccion y un sector medio que penaliza entrar pasado.",
         "lineWidth": 3,
         "asphaltWidth": 12,
         "maxOff": 6,
@@ -74,36 +90,23 @@ TRACK_DEFS = [
         "controls": [[158,538],[122,420],[112,248],[188,150],[315,112],[430,170],[364,270],[438,350],[535,300],[585,210],[735,165],[890,214],[925,320],[838,446],[696,455],[615,520],[560,595],[408,582],[298,500],[225,562]],
     },
     {
-        "id": "saudi_jeddah",
-        "name": "Arabia Saudi - Yeda",
-        "difficulty": "Experto",
-        "description": "Jeddah: callejero muy alargado, rápido y sinuoso junto al mar.",
-        "lineWidth": 5,
-        "asphaltWidth": 14,
-        "maxOff": 12,
-        "laps": 2200,
-        "speed": 28,
-        "kp": 72,
-        "controls": [[104,548],[176,512],[260,468],[344,415],[430,356],[515,292],[602,230],[704,170],[812,110],[918,132],[882,206],[790,268],[706,318],[624,372],[532,432],[420,502],[300,565],[178,594]],
-    },
-    {
         "id": "usa_miami",
-        "name": "Estados Unidos - Miami",
+        "name": "Segovia - Acueducto Raceway",
         "difficulty": "Dificil",
-        "description": "Miami: rectángulo exterior, zona lenta bajo autopista y curva de estadio.",
+        "description": "Rectas, curva de estadio y zona lenta. Buen test para bajar velocidad cuando sube el error.",
         "lineWidth": 3,
         "asphaltWidth": 12,
-        "maxOff": 5,
+        "maxOff": 8,
         "laps": 2000,
         "speed": 29,
         "kp": 66,
-        "controls": [[160,510],[122,385],[140,268],[235,182],[355,176],[455,222],[505,302],[438,366],[515,430],[650,382],[775,292],[895,212],[928,318],[844,430],[708,492],[558,520],[420,486],[320,548],[220,565]],
+        "controls": [[160,510],[122,385],[140,268],[235,182],[355,176],[455,222],[505,302],[438,366],[515,430],[650,382],[770,300],[868,235],[888,318],[822,410],[708,492],[558,520],[420,486],[320,548],[220,565]],
     },
     {
         "id": "emilia_imola",
-        "name": "Emilia Romana - Imola",
+        "name": "Soria - Torrezno Trail",
         "difficulty": "Dificil",
-        "description": "Imola: trazado fluido alargado, Tamburello, Acque Minerali y Rivazza.",
+        "description": "Fluido y traicionero: parece facil hasta que una curva larga te saca por acumulacion de error.",
         "lineWidth": 3,
         "asphaltWidth": 12,
         "maxOff": 5,
@@ -114,22 +117,22 @@ TRACK_DEFS = [
     },
     {
         "id": "monaco_montecarlo",
-        "name": "Monaco - Monaco",
-        "difficulty": "Experto",
-        "description": "Mónaco: Sainte Dévote, Casino, horquilla, túnel, piscina y Rascasse.",
+        "name": "Valladolid - Pucela Hairpin",
+        "difficulty": "Pesadilla",
+        "description": "Lento, estrecho y sin margen. Si no usas memoria al perder linea, no pasas de la zona tecnica.",
         "lineWidth": 3,
-        "asphaltWidth": 11,
-        "maxOff": 3,
+        "asphaltWidth": 13,
+        "maxOff": 6,
         "laps": 2400,
         "speed": 22,
         "kp": 80,
-        "controls": [[132,520],[112,420],[118,284],[156,188],[232,132],[333,145],[304,238],[382,302],[500,260],[612,196],[760,145],[889,245],[846,332],[724,370],[635,372],[610,485],[510,560],[390,575],[318,505],[228,552]],
+        "controls": [[132,520],[112,420],[118,284],[156,188],[232,132],[318,158],[330,232],[402,296],[500,260],[612,196],[760,145],[889,245],[846,332],[724,370],[635,372],[610,485],[510,560],[390,575],[318,505],[228,552]],
     },
     {
         "id": "spain_barcelona",
-        "name": "Espana - Barcelona",
-        "difficulty": "Media",
-        "description": "Barcelona: recta principal, curva 3 larga, sector medio y final técnico.",
+        "name": "El Bierzo - Botillo Sprint",
+        "difficulty": "Intermedia",
+        "description": "Barcelona combina recta, curva larga y sector final. Ideal para aprender velocidad adaptativa.",
         "lineWidth": 3,
         "asphaltWidth": 12,
         "maxOff": 6,
@@ -139,23 +142,10 @@ TRACK_DEFS = [
         "controls": [[120,515],[118,360],[120,220],[210,142],[330,135],[445,188],[575,158],[735,170],[885,240],[910,342],[822,438],[680,462],[575,448],[528,548],[430,586],[318,552],[250,480]],
     },
     {
-        "id": "canada_montreal",
-        "name": "Canada - Montreal",
-        "difficulty": "Dificil",
-        "description": "Montreal: isla alargada, rectas con chicanes y horquillas fuertes.",
-        "lineWidth": 3,
-        "asphaltWidth": 12,
-        "maxOff": 4,
-        "laps": 2100,
-        "speed": 29,
-        "kp": 68,
-        "controls": [[132,505],[205,445],[302,380],[405,312],[532,225],[675,118],[858,178],[790,268],[640,338],[705,418],[870,512],[760,570],[602,548],[488,496],[365,520],[238,572]],
-    },
-    {
         "id": "austria_spielberg",
-        "name": "Austria - Spielberg",
-        "difficulty": "Media",
-        "description": "Spielberg: silueta simple, subidas, rectas y frenadas grandes.",
+        "name": "Salamanca - Hornazo GP",
+        "difficulty": "Intermedia rapida",
+        "description": "Pocas curvas pero mucha velocidad. Facil de entender, dificil de hacer rapido sin trompo.",
         "lineWidth": 3,
         "asphaltWidth": 12,
         "maxOff": 5,
@@ -166,16 +156,16 @@ TRACK_DEFS = [
     },
     {
         "id": "britain_silverstone",
-        "name": "Gran Bretana - Silverstone",
-        "difficulty": "Dificil",
-        "description": "Silverstone: silueta rápida con Maggots-Becketts y Hangar Straight.",
+        "name": "Palencia - Cristo del Otero Loop",
+        "difficulty": "Muy dificil",
+        "description": "Rapido y enlazado. Maggots-Becketts exige anticipacion, derivada y no pasarse con KP.",
         "lineWidth": 3,
         "asphaltWidth": 12,
-        "maxOff": 4,
+        "maxOff": 7,
         "laps": 2100,
         "speed": 29,
         "kp": 68,
-        "controls": [[145,515],[122,390],[120,255],[220,150],[345,175],[470,120],[610,145],[750,150],[882,242],[830,360],[700,360],[610,420],[642,510],[742,560],[590,590],[438,552],[322,510],[230,568]],
+        "controls": [[145,515],[122,390],[120,255],[220,150],[345,175],[470,120],[610,145],[750,150],[882,242],[830,360],[700,360],[615,420],[660,500],[724,548],[610,578],[438,552],[322,510],[230,568]],
     },
 ]
 
@@ -217,7 +207,7 @@ for item in TRACK_DEFS:
     copy = dict(item)
     copy["lineWidth"] = round(copy["lineWidth"] * TRACK_WIDTH_SCALE, 2)
     copy["asphaltWidth"] = round(copy["asphaltWidth"] * TRACK_WIDTH_SCALE, 2)
-    copy["maxOff"] = int(copy.get("maxOff", 8) * 6)
+    copy["maxOff"] = int(copy.get("maxOff", 8) * 10)
     copy["points"] = build_track(item)
     copy["segments"] = build_segments(copy["points"])
     TRACKS.append(copy)
@@ -395,7 +385,7 @@ def simulate(code, track_index):
         update_internal_error()
         near = update_progress()
 
-        if state["slip"] > 0.48:
+        if state["slip"] > 0.75:
             state["failed"] = True
             console.append("DNF: trompo por exceso de giro. Baja KP o anade KD.")
             record_frame()
@@ -404,7 +394,7 @@ def simulate(code, track_index):
             state["spinFrames"] += 1
         else:
             state["spinFrames"] = max(0, state["spinFrames"] - 2)
-        if state["spinFrames"] > 60:
+        if state["spinFrames"] > 120:
             state["failed"] = True
             console.append("DNF: perdida de adherencia. Baja KP o anade KD.")
             record_frame()
@@ -520,6 +510,23 @@ class Handler(BaseHTTPRequestHandler):
                 payload.append({k: t[k] for k in ("id", "name", "difficulty", "description", "lineWidth", "asphaltWidth", "laps", "speed", "kp", "points")})
             self.send_json({"world": WORLD, "tracks": payload})
             return
+        if path == "/solutions":
+            SOLUTIONS_DIR.mkdir(exist_ok=True)
+            files = sorted(item.name for item in SOLUTIONS_DIR.glob("*.py") if item.is_file())
+            self.send_json({"files": files})
+            return
+        if path == "/solution":
+            try:
+                from urllib.parse import parse_qs
+                query = parse_qs(urlparse(self.path).query)
+                target = solution_path(query.get("name", [""])[0])
+                if not target.exists():
+                    self.send_json({"error": "Archivo no encontrado"}, 404)
+                    return
+                self.send_json({"name": target.name, "code": target.read_text(encoding="utf-8")})
+            except Exception as exc:
+                self.send_json({"error": str(exc)}, 400)
+            return
         if path == "/":
             path = "/index.html"
         target = (ROOT / path.lstrip("/")).resolve()
@@ -537,17 +544,26 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self):
-        if urlparse(self.path).path != "/simulate":
-            self.send_error(404)
-            return
+        path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", "0"))
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            track_index = int(payload.get("trackIndex", 0))
-            if not 0 <= track_index < len(TRACKS):
-                raise ValueError("trackIndex invalido")
-            result = simulate(str(payload.get("code", "")), track_index)
-            self.send_json(result)
+            if path == "/simulate":
+                track_index = int(payload.get("trackIndex", 0))
+                if not 0 <= track_index < len(TRACKS):
+                    raise ValueError("trackIndex invalido")
+                result = simulate(str(payload.get("code", "")), track_index)
+                self.send_json(result)
+                return
+            if path == "/solution":
+                target = solution_path(payload.get("name", ""))
+                code = str(payload.get("code", ""))
+                if len(code) > 200_000:
+                    raise ValueError("Archivo demasiado grande")
+                target.write_text(code, encoding="utf-8", newline="\n")
+                self.send_json({"saved": True, "name": target.name})
+                return
+            self.send_error(404)
         except Exception as exc:
             self.send_json({"error": str(exc)}, 400)
 

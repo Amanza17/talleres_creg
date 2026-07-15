@@ -43,6 +43,15 @@ button:hover, select:hover { background: var(--hover); border-color: var(--accen
 .track-btn span { display: grid; place-items: center; height: 30px; border-radius: 5px; background: #0e131c; color: var(--accent); font-weight: 800; }
 .track-btn small { color: var(--muted); white-space: nowrap; }
 .docs { display: grid; gap: 7px; }
+.file-controls { display: grid; gap: 7px; }
+.file-controls select, .file-controls input { width: 100%; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 0 9px; background: var(--bg); color: var(--text); }
+.file-controls input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+.file-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.file-buttons button { min-height: 34px; padding: 0 8px; }
+.file-list { margin-top: 9px; display: grid; gap: 5px; max-height: 150px; overflow: auto; padding-right: 2px; }
+.file-list button { width: 100%; min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 8px; text-align: left; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; color: var(--muted); background: var(--panel-2); }
+.file-list button:hover, .file-list button.active { color: var(--text); border-color: var(--accent); background: var(--hover); }
+.file-list .empty { padding: 8px; border: 1px dashed var(--line); border-radius: 6px; color: var(--subtle); font-size: 12px; }
 code { display: block; padding: 7px 9px; border-radius: 5px; background: var(--bg); color: var(--accent-hover); font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; white-space: nowrap; }
 .meta-grid { display: grid; grid-template-columns: 74px 1fr; gap: 8px 10px; font-size: 13px; color: var(--muted); }
 .meta-grid strong { color: var(--text); line-height: 1.25; }
@@ -51,9 +60,20 @@ code { display: block; padding: 7px 9px; border-radius: 5px; background: var(--b
 .panel-head { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
 .label { display: block; margin-bottom: 3px; color: var(--muted); font-size: 11px; text-transform: uppercase; }
 .editor-wrap { flex: 1; min-height: 0; display: grid; grid-template-columns: 52px 1fr; background: var(--bg); }
-#lineNumbers, #codeEditor, #consoleOutput { margin: 0; font-family: "JetBrains Mono", Consolas, monospace; font-size: 14px; line-height: 1.56; }
+#lineNumbers, #codeEditor, #codeHighlight, #consoleOutput { margin: 0; font-family: "JetBrains Mono", Consolas, monospace; font-size: 14px; line-height: 1.56; }
 #lineNumbers { padding: 13px 9px; overflow: hidden; text-align: right; color: var(--subtle); border-right: 1px solid var(--line); user-select: none; }
-#codeEditor { width: 100%; height: 100%; resize: none; border: 0; outline: 0; padding: 13px 15px; background: transparent; color: var(--text); tab-size: 4; }
+.code-layer { position: relative; min-width: 0; min-height: 0; background: var(--bg); }
+#codeEditor, #codeHighlight { position: absolute; inset: 0; width: 100%; height: 100%; padding: 13px 15px; border: 0; overflow: auto; tab-size: 4; white-space: pre; }
+#codeEditor { resize: none; outline: 0; background: transparent; color: transparent; caret-color: var(--text); -webkit-text-fill-color: transparent; }
+#codeEditor::selection { background: rgba(245,124,0,.32); -webkit-text-fill-color: transparent; }
+#codeHighlight { pointer-events: none; color: var(--text); }
+.tok-keyword { color: #C586C0; }
+.tok-builtin { color: #DCDCAA; }
+.tok-api { color: #4FC1FF; }
+.tok-string { color: #CE9178; }
+.tok-number { color: #B5CEA8; }
+.tok-comment { color: #6A9955; font-style: italic; }
+.tok-defname { color: #DCDCAA; }
 .console { height: 160px; background: var(--bg); border-top: 1px solid var(--line); }
 .console-title { padding: 8px 12px; color: var(--muted); border-bottom: 1px solid var(--line); font-size: 13px; }
 #consoleOutput { height: 118px; overflow: auto; padding: 10px 12px; color: var(--text); white-space: pre-wrap; }

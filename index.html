@@ -12,7 +12,7 @@
         <img class="logo" src="logo.png" alt="Logo">
         <div>
           <h1>Formula Python Lab</h1>
-          <p class="brand-meta"><span>@amanza17</span><a href="https://github.com/Amanza17/talleres_creg#" target="_blank" rel="noreferrer">Star this repo on GitHub</a></p>
+          <p class="brand-meta"><span>Castilla y Leon Edition · @amanza17</span><a href="https://github.com/Amanza17/talleres_creg#" target="_blank" rel="noreferrer">Star this repo on GitHub</a></p>
         </div>
       </div>
       <div class="toolbar">
@@ -47,13 +47,19 @@
             <code>if error &gt; 0:</code>
           </div>
         </section>
-        <section class="block metrics-block">
-          <div class="block-title">Pista actual</div>
-          <div class="meta-grid">
-            <span>Circuito</span><strong id="trackName">...</strong>
-            <span>Dificultad</span><strong id="trackDifficulty">...</strong>
-            <span>Objetivo</span><strong>100% · casi sin salidas</strong>
+        <section class="block files-block">
+          <div class="block-title">Archivos Python</div>
+          <div class="file-controls">
+            <select id="fileSelect" title="Archivo de trabajo">
+              <option value="">Nuevo archivo</option>
+            </select>
+            <input id="fileNameInput" type="text" value="piloto.py" aria-label="Nombre de archivo" spellcheck="false">
+            <div class="file-buttons">
+              <button id="loadFileBtn" type="button">Cargar</button>
+              <button id="saveFileBtn" type="button">Guardar</button>
+            </div>
           </div>
+          <div id="fileList" class="file-list" aria-label="Archivos guardados"></div>
         </section>
       </aside>
 
@@ -73,7 +79,10 @@
         </div>
         <div class="editor-wrap">
           <pre id="lineNumbers">1</pre>
-          <textarea id="codeEditor" spellcheck="false"></textarea>
+          <div class="code-layer">
+            <pre id="codeHighlight" aria-hidden="true"></pre>
+            <textarea id="codeEditor" spellcheck="false"></textarea>
+          </div>
         </div>
         <div class="console">
           <div class="console-title">Consola Python</div>
